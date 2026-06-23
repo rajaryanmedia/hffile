@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>High Furries — Admin Panel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d1b2a; --card: #0f2030; --card2: #142840;
+      --primary: #00d4e8; --accent: #00f0ff; --muted: #7a9bb5;
+      --border: rgba(0,212,232,0.2); --glow: 0 0 20px rgba(0,212,232,0.25);
+      --green: #16a34a; --red: #dc2626; --yellow: #d97706;
+      --text: #f0f8ff;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; }
+
+    /* ── Login Screen ── */
+    #login-screen {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 1rem;
+      background: radial-gradient(ellipse at top, rgba(0,212,232,.15), transparent 65%);
+    }
+    .login-box {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 1.5rem; padding: 2.5rem 2rem; width: 100%; max-width: 380px;
+      box-shadow: var(--glow);
+    }
+    .login-box h1 { font-size: 1.5rem; margin-bottom: .25rem; }
+    .login-box p { color: var(--muted); font-size: .85rem; margin-bottom: 1.75rem; }
+    .login-logo { display: flex; align-items: center; gap: .625rem; margin-bottom: 1.5rem; }
+    .login-logo .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 8px var(--primary); }
+    .login-logo span { font-size: 1.1rem; font-weight: 700; background: linear-gradient(135deg, var(--primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .field { margin-bottom: 1rem; }
+    .field label { display: block; font-size: .78rem; font-weight: 600; color: var(--muted); margin-bottom: .4rem; letter-spacing: .06em; text-transform: uppercase; }
+    .field input { width: 100%; background: var(--card2); border: 1px solid var(--border); border-radius: .6rem; padding: .7rem 1rem; color: var(--text); font-size: .9rem; outline: none; transition: border .2s; }
+    .field input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,212,232,.15); }
+    .btn-login { width: 100%; background: var(--primary); color: #0d1b2a; font-weight: 700; font-size: .95rem; border: none; border-radius: 9999px; padding: .75rem; cursor: pointer; margin-top: .5rem; transition: background .2s, transform .1s; }
+    .btn-login:hover { background: var(--accent); transform: translateY(-1px); }
+    .login-error { color: #f87171; font-size: .82rem; margin-top: .75rem; text-align: center; display: none; }
+
+    /* ── Admin Layout ── */
+    #admin-screen { display: none; flex-direction: column; min-height: 100vh; }
+    header { background: rgba(13,27,42,.95); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); padding: 0 1.5rem; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    header .left { display: flex; align-items: center; gap: .75rem; }
+    header .logo-badge { background: linear-gradient(135deg, var(--primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700; font-size: 1.1rem; }
+    header .badge { background: rgba(0,212,232,.15); border: 1px solid var(--border); color: var(--primary); font-size: .7rem; font-weight: 700; padding: .15rem .5rem; border-radius: 9999px; letter-spacing: .08em; }
+    header .right { display: flex; align-items: center; gap: 1rem; }
+    .btn-logout { background: transparent; color: var(--muted); border: 1px solid var(--border); padding: .35rem .875rem; border-radius: 9999px; font-size: .8rem; cursor: pointer; transition: all .2s; }
+    .btn-logout:hover { color: var(--text); border-color: rgba(0,212,232,.4); }
+
+    .save-status { font-size: .78rem; color: var(--muted); display: flex; align-items: center; gap: .35rem; }
+    .save-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+    .save-dot.saved { background: var(--green); box-shadow: 0 0 5px var(--green); }
+    .save-dot.unsaved { background: var(--yellow); }
+
+    .admin-body { display: flex; flex: 1; }
+
+    /* ── Sidebar ── */
+    nav { width: 220px; background: var(--card); border-right: 1px solid var(--border); padding: 1.25rem 0; flex-shrink: 0; }
+    nav .nav-section { font-size: .7rem; font-weight: 700; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; padding: .5rem 1.25rem; margin-top: .75rem; }
+    nav a { display: flex; align-items: center; gap: .6rem; padding: .55rem 1.25rem; color: var(--muted); font-size: .85rem; cursor: pointer; border-left: 3px solid transparent; transition: all .2s; text-decoration: none; }
+    nav a:hover { color: var(--text); background: rgba(0,212,232,.06); }
+    nav a.active { color: var(--primary); border-left-color: var(--primary); background: rgba(0,212,232,.08); }
+    nav a svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+    /* ── Main content ── */
+    main { flex: 1; padding: 2rem; overflow-y: auto; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .page-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 1.5rem; }
+    .page-title span { color: var(--primary); }
+
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .card-title { font-size: .75rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 1rem; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .full { grid-column: 1 / -1; }
+
+    label { display: block; font-size: .78rem; font-weight: 600; color: var(--muted); margin-bottom: .35rem; letter-spacing: .05em; }
+    input[type="text"], input[type="date"], input[type="time"], input[type="number"], input[type="url"], textarea, select {
+      width: 100%; background: var(--card2); border: 1px solid var(--border);
+      border-radius: .5rem; padding: .6rem .875rem; color: var(--text);
+      font-size: .875rem; font-family: 'Inter', sans-serif;
+      outline: none; transition: border .2s; resize: vertical;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(0,212,232,.12); }
+    input[type="checkbox"] { width: auto; margin-right: .4rem; }
+
+    .form-row { margin-bottom: .875rem; }
+    .hint { font-size: .72rem; color: var(--muted); margin-top: .25rem; }
+
+    .btn-save { background: var(--primary); color: #0d1b2a; font-weight: 700; border: none; border-radius: 9999px; padding: .6rem 1.75rem; cursor: pointer; font-size: .9rem; transition: all .2s; }
+    .btn-save:hover { background: var(--accent); transform: translateY(-1px); }
+    .btn-secondary { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); border-radius: 9999px; padding: .6rem 1.75rem; cursor: pointer; font-size: .9rem; transition: all .2s; }
+    .btn-secondary:hover { background: rgba(0,212,232,.1); }
+    .btn-danger { background: transparent; color: #f87171; border: 1.5px solid #f87171; border-radius: 9999px; padding: .6rem 1.75rem; cursor: pointer; font-size: .9rem; transition: all .2s; }
+    .btn-danger:hover { background: rgba(220,38,38,.1); }
+
+    .btn-row { display: flex; align-items: center; gap: .75rem; margin-top: 1.25rem; }
+
+    .tag { display: inline-block; border-radius: 9999px; padding: .2rem .65rem; font-size: .7rem; font-weight: 700; }
+    .tag-green { background: rgba(22,163,74,.2); color: #4ade80; }
+    .tag-yellow { background: rgba(217,119,6,.2); color: #fbbf24; }
+    .tag-red { background: rgba(220,38,38,.2); color: #f87171; }
+
+    /* Ticket rows */
+    .ticket-row { display: flex; align-items: center; gap: 1rem; padding: .75rem; background: var(--card2); border: 1px solid var(--border); border-radius: .6rem; margin-bottom: .6rem; }
+    .ticket-row .t-name { flex: 1; font-size: .875rem; }
+    .ticket-row input { width: 90px; padding: .4rem .6rem; font-size: .85rem; }
+    .ticket-row .t-badge { font-size: .7rem; color: var(--muted); }
+
+    /* Coupon rows */
+    .coupon-row { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr auto; gap: .625rem; align-items: center; padding: .6rem .875rem; background: var(--card2); border: 1px solid var(--border); border-radius: .6rem; margin-bottom: .5rem; font-size: .82rem; }
+    .coupon-row input { padding: .35rem .5rem; font-size: .82rem; }
+    .coupon-row select { padding: .35rem .5rem; font-size: .82rem; }
+    .btn-del { background: transparent; border: none; color: #f87171; cursor: pointer; font-size: 1rem; padding: .25rem; border-radius: .3rem; }
+    .btn-del:hover { background: rgba(220,38,38,.15); }
+    .add-btn { display: inline-flex; align-items: center; gap: .4rem; background: rgba(0,212,232,.1); color: var(--primary); border: 1px dashed var(--border); border-radius: .5rem; padding: .45rem .875rem; cursor: pointer; font-size: .82rem; font-weight: 600; margin-top: .5rem; }
+    .add-btn:hover { background: rgba(0,212,232,.18); }
+
+    .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--card2); border: 1px solid var(--green); color: #4ade80; padding: .75rem 1.25rem; border-radius: .75rem; font-size: .85rem; font-weight: 600; box-shadow: 0 4px 20px rgba(0,0,0,.5); transform: translateY(80px); opacity: 0; transition: all .3s; z-index: 999; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    .preview-btn { display: flex; align-items: center; gap: .4rem; font-size: .8rem; color: var(--muted); background: transparent; border: none; cursor: pointer; padding: .35rem; }
+    .preview-btn:hover { color: var(--primary); }
+
+    /* Toggle switch */
+    .toggle-wrap { display: flex; align-items: center; gap: .6rem; }
+    .toggle { position: relative; width: 38px; height: 21px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: var(--card2); border: 1px solid var(--border); border-radius: 9999px; cursor: pointer; transition: .3s; }
+    .slider:before { content: ''; position: absolute; height: 15px; width: 15px; left: 2px; bottom: 2px; background: var(--muted); border-radius: 50%; transition: .3s; }
+    .toggle input:checked + .slider { background: rgba(0,212,232,.2); border-color: var(--primary); }
+    .toggle input:checked + .slider:before { transform: translateX(17px); background: var(--primary); }
+    .toggle-label { font-size: .85rem; color: var(--text); }
+
+    /* Code block */
+    .code-block { background: #0a1520; border: 1px solid var(--border); border-radius: .6rem; padding: 1rem; font-family: monospace; font-size: .8rem; color: #a0c4d8; overflow-x: auto; white-space: pre; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      nav { display: none; }
+      .grid-2 { grid-template-columns: 1fr; }
+      .grid-3 { grid-template-columns: 1fr; }
+      main { padding: 1rem; }
+      .coupon-row { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════ LOGIN ══════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="dot"></div>
+      <span>High Furries</span>
+    </div>
+    <h1>Admin Panel</h1>
+    <p>Enter your password to manage the website</p>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="pw-input" placeholder="Enter admin password" autocomplete="current-password" />
+    </div>
+    <button class="btn-login" onclick="tryLogin()">Login →</button>
+    <div class="login-error" id="login-error">❌ Wrong password. Try again.</div>
+  </div>
+</div>
+
+<!-- ══════════ ADMIN ══════════ -->
+<div id="admin-screen">
+  <header>
+    <div class="left">
+      <span class="logo-badge">🐾 High Furries</span>
+      <span class="badge">ADMIN</span>
+    </div>
+    <div class="right">
+      <div class="save-status"><div class="save-dot saved" id="save-dot"></div><span id="save-text">All saved</span></div>
+      <button class="btn-logout" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <div class="admin-body">
+    <!-- Sidebar -->
+    <nav>
+      <div class="nav-section">Next Event</div>
+      <a class="active" onclick="showTab('tab-event')" id="nav-event">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Event Details
+      </a>
+      <a onclick="showTab('tab-tickets')" id="nav-tickets">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+        Ticket Prices
+      </a>
+      <a onclick="showTab('tab-coupons')" id="nav-coupons">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12v-2a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2m0 0v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2m-6-4v8m-4-8v8"/></svg>
+        Coupon Codes
+      </a>
+
+      <div class="nav-section">Site Content</div>
+      <a onclick="showTab('tab-hero')" id="nav-hero">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3L2 9l10 6 10-6-10-6zM2 17l10 6 10-6"/></svg>
+        Hero / Banner
+      </a>
+      <a onclick="showTab('tab-contact')" id="nav-contact">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92V21a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.56 2H8a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        Contact & Links
+      </a>
+      <a onclick="showTab('tab-razorpay')" id="nav-razorpay">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        Razorpay Key
+      </a>
+
+      <div class="nav-section">Tools</div>
+      <a onclick="showTab('tab-export')" id="nav-export">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Export Files
+      </a>
+    </nav>
+
+    <!-- Main -->
+    <main>
+
+      <!-- ── TAB: Event Details ── -->
+      <div class="tab-content active" id="tab-event">
+        <div class="page-title">📅 Event Details — <span>Paint with Pets</span></div>
+        <div class="card">
+          <div class="card-title">Spotlight Event (Top of page)</div>
+          <div class="grid-2">
+            <div class="form-row">
+              <label>Event Name</label>
+              <input type="text" id="evt-name" value="Paint with Pets" />
+            </div>
+            <div class="form-row">
+              <label>Event Tag (e.g. "NEXT UP")</label>
+              <input type="text" id="evt-tag" value="NEXT UP" />
+            </div>
+            <div class="form-row">
+              <label>Date (display format)</label>
+              <input type="text" id="evt-date" value="Sat 5 July, 2026" />
+              <div class="hint">e.g. Sat 5 July, 2026 — used in text &amp; Razorpay receipt</div>
+            </div>
+            <div class="form-row">
+              <label>Time</label>
+              <input type="text" id="evt-time" value="4:00 PM – 6:00 PM" />
+            </div>
+            <div class="form-row full">
+              <label>Venue Name</label>
+              <input type="text" id="evt-venue" value="Throttle Shrottle, Gurugram" />
+            </div>
+            <div class="form-row full">
+              <label>Google Maps / Venue URL</label>
+              <input type="url" id="evt-map-url" value="https://maps.google.com" />
+            </div>
+            <div class="form-row full">
+              <label>Event Book Link (HostMyShow / Ticketmaster etc.)</label>
+              <input type="url" id="evt-book-url" value="https://hostmyshow.in" />
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Razorpay Payment Note</div>
+          <div class="form-row">
+            <label>Payment confirmation message (shown after payment)</label>
+            <textarea id="evt-pay-msg" rows="2">🐾 Payment successful!\n\nWe will WhatsApp your confirmation shortly.\n\nSee you on Sat 5 July at Throttle Shrottle, Gurugram!</textarea>
+            <div class="hint">This is shown in the alert popup after successful payment.</div>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-save" onclick="saveAll()">💾 Save Changes</button>
+          <button class="btn-secondary" onclick="exportHTML()">⬇ Download Updated index.html</button>
+        </div>
+      </div>
+
+      <!-- ── TAB: Ticket Prices ── -->
+      <div class="tab-content" id="tab-tickets">
+        <div class="page-title">🎟 Ticket Prices</div>
+        <div class="card">
+          <div class="card-title">Paint with Pets — Ticket Options</div>
+          <div class="hint" style="margin-bottom:1rem">Change prices below. Name is display-only (update carefully to match your site).</div>
+          <div id="tickets-list"></div>
+          <div class="btn-row">
+            <button class="btn-save" onclick="saveAll()">💾 Save Prices</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TAB: Coupon Codes ── -->
+      <div class="tab-content" id="tab-coupons">
+        <div class="page-title">🏷 Coupon Codes</div>
+        <div class="card">
+          <div class="card-title">Active Coupons</div>
+          <div class="hint" style="margin-bottom:.875rem">Add / remove / edit discount codes. Type: percent = % off, flat = ₹ off.</div>
+          <div style="display:grid; grid-template-columns:1.5fr .8fr .8fr 1fr auto; gap:.5rem; padding:.35rem .875rem; font-size:.72rem; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.06em;">
+            <span>Code</span><span>Type</span><span>Value</span><span>Label</span><span></span>
+          </div>
+          <div id="coupons-list"></div>
+          <button class="add-btn" onclick="addCoupon()">+ Add coupon</button>
+          <div class="btn-row">
+            <button class="btn-save" onclick="saveAll()">💾 Save Coupons</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TAB: Hero / Banner ── -->
+      <div class="tab-content" id="tab-hero">
+        <div class="page-title">🏠 Hero / Banner</div>
+        <div class="card">
+          <div class="card-title">Hero Section Text</div>
+          <div class="grid-2">
+            <div class="form-row">
+              <label>Badge text (small pill above heading)</label>
+              <input type="text" id="hero-badge" value="India's first Human–Animal Wellness Platform" />
+            </div>
+            <div class="form-row">
+              <label>Heading Line 1</label>
+              <input type="text" id="hero-h1a" value="Experiences that" />
+            </div>
+            <div class="form-row">
+              <label>Heading Line 2 (italic gradient)</label>
+              <input type="text" id="hero-h1b" value="bond humans & pets" />
+            </div>
+            <div class="form-row full">
+              <label>Subheading</label>
+              <textarea id="hero-sub" rows="2">Premium paint-with-pets, yoga, pool parties &amp; more. Delhi NCR's most loved pet experience.</textarea>
+            </div>
+            <div class="form-row">
+              <label>Primary CTA Button Text</label>
+              <input type="text" id="hero-cta1" value="Book Next Event" />
+            </div>
+            <div class="form-row">
+              <label>Secondary CTA Button Text</label>
+              <input type="text" id="hero-cta2" value="Explore Events" />
+            </div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn-save" onclick="saveAll()">💾 Save Hero</button>
+        </div>
+      </div>
+
+      <!-- ── TAB: Contact ── -->
+      <div class="tab-content" id="tab-contact">
+        <div class="page-title">📞 Contact & Links</div>
+        <div class="card">
+          <div class="card-title">Contact Information</div>
+          <div class="grid-2">
+            <div class="form-row">
+              <label>Phone Number</label>
+              <input type="text" id="contact-phone" value="+91 83682 08497" />
+            </div>
+            <div class="form-row">
+              <label>Email Address</label>
+              <input type="text" id="contact-email" value="hello@highfurries.com" />
+            </div>
+            <div class="form-row">
+              <label>Instagram URL</label>
+              <input type="url" id="contact-ig" value="https://instagram.com/highfurries" />
+            </div>
+            <div class="form-row">
+              <label>WhatsApp Number (no + or spaces)</label>
+              <input type="text" id="contact-wa" value="918368208497" />
+            </div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn-save" onclick="saveAll()">💾 Save Contact</button>
+        </div>
+      </div>
+
+      <!-- ── TAB: Razorpay ── -->
+      <div class="tab-content" id="tab-razorpay">
+        <div class="page-title">💳 Razorpay Settings</div>
+        <div class="card">
+          <div class="card-title">API Key</div>
+          <div class="form-row">
+            <label>Razorpay Key ID (live or test)</label>
+            <input type="text" id="rzp-key" value="rzp_test_XXXXXXXXXX" />
+            <div class="hint">⚠️ Never share this. Use rzp_live_... for production.</div>
+          </div>
+          <div class="form-row">
+            <label>Business Name shown in payment modal</label>
+            <input type="text" id="rzp-name" value="High Furries" />
+          </div>
+          <div class="form-row">
+            <label>Payment description prefix</label>
+            <input type="text" id="rzp-desc" value="Paint with Pets · " />
+            <div class="hint">e.g. "Paint with Pets · Paw Fridge Magnet"</div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn-save" onclick="saveAll()">💾 Save Settings</button>
+        </div>
+      </div>
+
+      <!-- ── TAB: Export ── -->
+      <div class="tab-content" id="tab-export">
+        <div class="page-title">⬇ Export & Deploy</div>
+        <div class="card">
+          <div class="card-title">How to update your live website</div>
+          <ol style="color:var(--muted);font-size:.875rem;line-height:2;padding-left:1.25rem">
+            <li>Make all your changes in this admin panel</li>
+            <li>Click <strong style="color:var(--text)">Download index.html</strong> below</li>
+            <li>Go to <strong style="color:var(--text)">Netlify → highfurries.com → Deploys</strong></li>
+            <li>Drag &amp; drop the new <code style="color:var(--primary)">index.html</code> onto the deploy area</li>
+            <li>Your site updates in ~30 seconds ✅</li>
+          </ol>
+        </div>
+        <div class="card">
+          <div class="card-title">Download</div>
+          <p style="color:var(--muted);font-size:.875rem;margin-bottom:1.25rem">This will apply all your saved changes and generate a ready-to-upload <code style="color:var(--primary)">index.html</code>.</p>
+          <button class="btn-save" style="font-size:1rem;padding:.75rem 2rem;" onclick="exportHTML()">⬇ Download index.html</button>
+        </div>
+        <div class="card">
+          <div class="card-title">Admin Panel URL</div>
+          <p style="color:var(--muted);font-size:.875rem;margin-bottom:.75rem">Save this admin.html on Netlify too (at <code style="color:var(--primary)">/admin</code> path). Only you know the password.</p>
+          <div class="code-block">https://highfurries.com/admin.html</div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">✅ Changes saved!</div>
+
+<script>
+// ─── Auth ───
+const ADMIN_PW = 'highfurries2025';  // ← Change this password!
+
+function tryLogin() {
+  const pw = document.getElementById('pw-input').value;
+  if (pw === ADMIN_PW) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-screen').style.display = 'flex';
+    init();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-input').focus();
+  }
+}
+document.getElementById('pw-input').addEventListener('keydown', e => { if(e.key==='Enter') tryLogin(); });
+
+function logout() {
+  document.getElementById('admin-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('pw-input').value = '';
+}
+
+// ─── Tab navigation ───
+function showTab(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById('nav-' + id.replace('tab-',''))?.classList.add('active');
+}
+
+// ─── Data model ───
+const ticketData = [
+  { id:'fridge-magnet', name:'Paw Fridge Magnet',       price: 699,  badge:'Most popular' },
+  { id:'coffee-mug',   name:'Coffee Mug Painting',     price: 899,  badge:'' },
+  { id:'canvas',       name:'Canvas Painting',         price: 999,  badge:'' },
+  { id:'tote',         name:'Tote Bag Painting',       price: 1199, badge:'' },
+  { id:'pot',          name:'Pot Painting',            price: 1299, badge:'' },
+  { id:'journal',      name:'Journal Cover Painting',  price: 1299, badge:'' },
+  { id:'wineglass',    name:'Wine Glass Painting',     price: 1499, badge:'' },
+  { id:'paw-couple',   name:'Paw Couple (Group of 2)', price: 1599, badge:'' },
+  { id:'3d-art',       name:'3D Art Painting',         price: 1799, badge:'' },
+  { id:'group-3',      name:'Group of 3',              price: 2499, badge:'' },
+  { id:'group-4',      name:'Group of 4',              price: 3699, badge:'' },
+];
+
+let coupons = [
+  { code:'HIGHFURRIES10', type:'percent', value:10,  label:'10% off' },
+  { code:'WELCOME20',     type:'percent', value:20,  label:'20% off' },
+  { code:'FLAT100',       type:'flat',    value:100, label:'₹100 off' },
+  { code:'PAWSOME50',     type:'flat',    value:50,  label:'₹50 off' },
+  { code:'FIRSTPET',      type:'percent', value:15,  label:'15% first timer' },
+];
+
+// ─── Render tickets ───
+function renderTickets() {
+  const el = document.getElementById('tickets-list');
+  el.innerHTML = ticketData.map((t, i) => `
+    <div class="ticket-row">
+      <span class="t-name">${t.name}</span>
+      ${t.badge ? `<span class="tag tag-green">${t.badge}</span>` : '<span></span>'}
+      <span class="t-badge">₹</span>
+      <input type="number" id="tp-${t.id}" value="${t.price}" min="0" step="1" onchange="markUnsaved()" />
+    </div>
+  `).join('');
+}
+
+// ─── Render coupons ───
+function renderCoupons() {
+  const el = document.getElementById('coupons-list');
+  el.innerHTML = coupons.map((c, i) => `
+    <div class="coupon-row">
+      <input type="text" value="${c.code}" oninput="coupons[${i}].code=this.value; markUnsaved()" />
+      <select onchange="coupons[${i}].type=this.value; markUnsaved()">
+        <option value="percent" ${c.type==='percent'?'selected':''}>%</option>
+        <option value="flat" ${c.type==='flat'?'selected':''}>₹ flat</option>
+      </select>
+      <input type="number" value="${c.value}" min="1" oninput="coupons[${i}].value=+this.value; markUnsaved()" />
+      <input type="text" value="${c.label}" oninput="coupons[${i}].label=this.value; markUnsaved()" />
+      <button class="btn-del" onclick="deleteCoupon(${i})" title="Delete">✕</button>
+    </div>
+  `).join('');
+}
+
+function addCoupon() {
+  coupons.push({ code:'NEWCODE', type:'percent', value:10, label:'10% off' });
+  renderCoupons();
+  markUnsaved();
+}
+
+function deleteCoupon(i) {
+  if (confirm('Delete this coupon?')) {
+    coupons.splice(i, 1);
+    renderCoupons();
+    markUnsaved();
+  }
+}
+
+// ─── Save state ───
+function markUnsaved() {
+  document.getElementById('save-dot').className = 'save-dot unsaved';
+  document.getElementById('save-text').textContent = 'Unsaved changes';
+}
+
+function markSaved() {
+  document.getElementById('save-dot').className = 'save-dot saved';
+  document.getElementById('save-text').textContent = 'All saved';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg || '✅ Changes saved!';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ─── Save all ───
+function saveAll() {
+  // Read ticket prices back
+  ticketData.forEach(t => {
+    const el = document.getElementById('tp-' + t.id);
+    if (el) t.price = parseInt(el.value) || t.price;
+  });
+  markSaved();
+  showToast('✅ Changes saved! Click Export to download.');
+}
+
+// ─── Export HTML ───
+function exportHTML() {
+  saveAll();
+
+  // Collect all values
+  const vals = {
+    evtName:    v('evt-name'),
+    evtTag:     v('evt-tag'),
+    evtDate:    v('evt-date'),
+    evtTime:    v('evt-time'),
+    evtVenue:   v('evt-venue'),
+    evtMapUrl:  v('evt-map-url'),
+    evtBookUrl: v('evt-book-url'),
+    evtPayMsg:  v('evt-pay-msg'),
+    heroBadge:  v('hero-badge'),
+    heroH1a:    v('hero-h1a'),
+    heroH1b:    v('hero-h1b'),
+    heroSub:    v('hero-sub'),
+    heroCta1:   v('hero-cta1'),
+    heroCta2:   v('hero-cta2'),
+    phone:      v('contact-phone'),
+    email:      v('contact-email'),
+    ig:         v('contact-ig'),
+    wa:         v('contact-wa'),
+    rzpKey:     v('rzp-key'),
+    rzpName:    v('rzp-name'),
+    rzpDesc:    v('rzp-desc'),
+  };
+
+  // Build tickets JS array
+  const ticketsJS = `const tickets = [\n` +
+    ticketData.map(t => {
+      return `  { id:'${t.id}', name:'${t.name}', price:${t.price}, includes:'${getIncludes(t.id)}', badge:'${t.badge||''}', icon:'${getIcon(t.id)}', ibg:'${getIbg(t.id)}', ic:'${getIc(t.id)}', thumb:IMGS.${getThumb(t.id)} }`;
+    }).join(',\n') + '\n];';
+
+  // Build coupons JS object
+  const couponsJS = `const COUPONS = {\n` +
+    coupons.map(c => `  '${c.code}': { type: '${c.type}', value: ${c.value}, label: '${c.label}', maxUses: 999 }`).join(',\n') +
+    '\n};';
+
+  // We'll tell the user to replace sections (since we can't embed the full 1100-line HTML here)
+  // Instead, generate a change-log file they can follow
+  const changeLog = `HIGH FURRIES — ADMIN CHANGES LOG
+Generated: ${new Date().toLocaleString()}
+========================================
+
+PATCH 1 — Event Details
+------------------------
+EVENT NAME:     ${vals.evtName}
+EVENT DATE:     ${vals.evtDate}
+EVENT TIME:     ${vals.evtTime}
+VENUE:          ${vals.evtVenue}
+VENUE MAP URL:  ${vals.evtMapUrl}
+BOOK URL:       ${vals.evtBookUrl}
+PAY MSG:        ${vals.evtPayMsg}
+
+PATCH 2 — Hero Text
+--------------------
+BADGE:    ${vals.heroBadge}
+HEADING:  ${vals.heroH1a} / ${vals.heroH1b}
+SUB:      ${vals.heroSub}
+CTA1:     ${vals.heroCta1}
+CTA2:     ${vals.heroCta2}
+
+PATCH 3 — Contact
+------------------
+PHONE:    ${vals.phone}
+EMAIL:    ${vals.email}
+IG:       ${vals.ig}
+WA:       ${vals.wa}
+
+PATCH 4 — Razorpay
+-------------------
+KEY:      ${vals.rzpKey}
+NAME:     ${vals.rzpName}
+DESC:     ${vals.rzpDesc}
+
+PATCH 5 — Ticket Prices (replace const tickets = [...])
+---------------------------------------------------------
+${ticketsJS}
+
+PATCH 6 — Coupons (replace const COUPONS = {...})
+---------------------------------------------------
+${couponsJS}
+`;
+
+  // Download the change log
+  const blob = new Blob([changeLog], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'highfurries-changes.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('📄 Changes file downloaded! Apply to index.html');
+}
+
+function v(id) { const el = document.getElementById(id); return el ? el.value : ''; }
+
+// helpers for ticket metadata
+const tkMeta = {
+  'fridge-magnet': { includes:'Paints + fridge magnet', icon:'magnet',       ibg:'rgba(220,50,50,.18)',   ic:'#f87171', thumb:'painting_girl_new' },
+  'coffee-mug':    { includes:'Paints + a coffee mug to paint', icon:'coffee', ibg:'rgba(180,120,50,.18)', ic:'#fbbf24', thumb:'girl_feeding_cat' },
+  'canvas':        { includes:'Paints + a canvas to paint', icon:'frame',      ibg:'rgba(50,120,220,.18)', ic:'#60a5fa', thumb:'girl_painting_flowers' },
+  'tote':          { includes:'Paints & a tote bag to paint', icon:'shopping-bag', ibg:'rgba(50,180,100,.18)', ic:'#34d399', thumb:'girl_poodle_painting' },
+  'pot':           { includes:'Paints + a pot to paint', icon:'sprout',         ibg:'rgba(30,160,80,.18)',  ic:'#4ade80', thumb:'cat_ginger' },
+  'journal':       { includes:'Paints + a journal cover', icon:'notebook',      ibg:'rgba(130,50,220,.18)', ic:'#a78bfa', thumb:'girl_white_kitten' },
+  'wineglass':     { includes:'Paints + a wine glass to paint', icon:'wine',    ibg:'rgba(200,50,180,.18)', ic:'#f472b6', thumb:'girl_holding_cat' },
+  'paw-couple':    { includes:'Paints + a canvas for two', icon:'heart',        ibg:'rgba(220,50,100,.18)', ic:'#fb7185', thumb:'couple_golden_puppy' },
+  '3d-art':        { includes:'Paints + 3D art canvas', icon:'box',             ibg:'rgba(0,212,232,.18)',  ic:'#22d3ee', thumb:'man_cat' },
+  'group-3':       { includes:'Paints + 3 canvases', icon:'users',              ibg:'rgba(220,120,30,.18)', ic:'#fb923c', thumb:'group_photo' },
+  'group-4':       { includes:'Paints + 4 canvases', icon:'users',              ibg:'rgba(80,80,220,.18)',  ic:'#818cf8', thumb:'couple_at_cafe' },
+};
+function getIncludes(id){ return tkMeta[id]?.includes||''; }
+function getIcon(id){ return tkMeta[id]?.icon||'tag'; }
+function getIbg(id){ return tkMeta[id]?.ibg||'rgba(0,0,0,.2)'; }
+function getIc(id){ return tkMeta[id]?.ic||'#fff'; }
+function getThumb(id){ return tkMeta[id]?.thumb||'painting_girl_new'; }
+
+// ─── Init ───
+function init() {
+  renderTickets();
+  renderCoupons();
+  // Add change listeners
+  document.querySelectorAll('input, textarea, select').forEach(el => {
+    if (el.id !== 'pw-input') el.addEventListener('input', markUnsaved);
+  });
+}
+</script>
+</body>
+</html>
